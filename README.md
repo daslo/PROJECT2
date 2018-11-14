@@ -10,16 +10,24 @@ The data is displayed on TM1638 based board and sent over USART.
 Connections:
 
 uC    ---   LM35
+
 PA0   ---   Vout
 
 uC    ---   DHT11
+
 PA6   ---   DIO
 
 uC    ---   TM1638
+
 PB12  ---   STB
+
 PB13  ---   CLK
+
 PB15  ---   DIO
 
 uC    ---   UART<>USB
+
 PA10  ---   TX
+
 PA9   ---   RX
+
