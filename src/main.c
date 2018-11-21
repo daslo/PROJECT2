@@ -123,6 +123,9 @@ __attribute__((interrupt)) void SysTick_Handler(void){
 		break;
 	case 100:
 		/*
+		 * Datasheet says, sampling period should be at least 1 second
+		 * and for 1 second since power-up chip is unstable.
+		 * Therefore DHT11 related code executes at 100th (1s) step.
 		 * Set DHT11 pin as output, low
 		 * DHT11 will detect low signal and will start sending data after it ends
 		 */
@@ -136,6 +139,7 @@ __attribute__((interrupt)) void SysTick_Handler(void){
 		/*
 		 * Duration of low signal must be at least 18ms
 		 * here: 20ms
+		 *
 		 * Set DHT11 pin as input with pull-up
 		 */
 		GPIOA->CRL &= ~GPIO_CRL_MODE6_0;
