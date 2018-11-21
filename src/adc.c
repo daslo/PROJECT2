@@ -8,21 +8,29 @@
 #include "stm32f103xb.h"
 #include "adc.h"
 
-int16_t t_internal=0;
-int16_t a_internal=0;
-#define T_ADC_degC 58
-#define A_V25 1779
+int16_t adc=0;
 
 void setup_adc(){
-	/* configure ADC1, measure internal temperature sensor (on ADC1_CH16)*/
-	ADC1->SQR3 |= 16; /*channel*/
+	/* configure ADC1: order of channels*/
+	/* channels:    333332222211111 */
+	ADC1->SQR3 |= 0b000000000000000; /*1st: channel 0 (on PA0 pin)*/
+	ADC1->SQR3 |= 0b000000000100000; /*2nd: channel 1 (on PA1 pin)*/
+	ADC1->SQR3 |= 0b100000000000000; /*3th: channel 16 (internal temperature sensor)*/
+	ADC1->SQR1 |= ADC_SQR1_L_1; /* number of channels =0b00010 +1 = 3 */
 	/*
-	 * Select number of cycles to measure,
-	 * For internal temperature sensor reading 71,1us is ok
-	 * (refer to datasheet)
+	 * Set conversion time
+	 * I don't care about speed, so I set the longest possible
+	 * (but most precise): 239.5 cycles
+	 * (With 8MHz (default) clock it takes ~30us
 	 */
-	ADC1->SMPR2 |= 0b110;
+	ADC1->SMPR2 |= 0b000000111;
+	ADC1->SMPR2 |= 0b000111000;
+	ADC1->SMPR2 |= 0b111000000;
 
+	/* Discontinuous mode: 1 channel per conversion */
+	ADC1->CR1 |= ADC_CR1_DISCEN;
+	/* Start conversion with writing SWSTART bit */
+	ADC1->CR2 |= ADC_CR2_EXTTRIG | ADC_CR2_EXTSEL_0 | ADC_CR2_EXTSEL_1 | ADC_CR2_EXTSEL_2;
 	/* Turn on ADC1 and internal temperature sensor */
 	ADC1->CR2 |= ADC_CR2_ADON | ADC_CR2_TSVREFE;
 
@@ -32,26 +40,27 @@ void setup_adc(){
 	 */
 	ADC1->CR2 |= ADC_CR2_CAL;
 	while(ADC1->CR2 & ADC_CR2_CAL);
+	//ADC1->CR2 |= ADC_CR2_ADON;
+
 }
+/*
+ * each time the read_adc function is called a conversion of 1 channel occurs
+ * next read_adc call will read from next channel
+ */
 
 int16_t read_adc(){
 	/*
-	 * write ADC_CR2_ADON again to start the conversion
-	 *
+	 * write ADC_CR2_SWSTART to start the conversion of 1 channel
+	 * (hardware clears this bit automatically)
 	 */
-	ADC1->CR2 |= ADC_CR2_ADON;
 	ADC1->CR2 |= ADC_CR2_SWSTART;
-	//ADC1->CR2 |= ADC_CR2_CONT;
-
-	a_internal=ADC1->DR; /* Read data from data register */
+	/* Wait for the end of conversion*/
+	while(!(ADC1->SR & ADC_SR_EOC));
 	/*
-	 * Calculate temperature in degree Celsius
-	 * This formula is based on formula in Reference Manual
-	 * and values in datasheet
-	 * 	(Note: it's not exactly the formula from RM
-	 * 	V25 value [in V] is changed to analog equivalent analog value
-	 * 	and Avg_slope is already used
+	 * Read data from data register
+	 * ADC's resolution is 12bit, so 16bit variable is OK
 	 */
-	t_internal= 25+(A_V25 - a_internal)*T_ADC_degC/4096;
-	return t_internal;
+	adc=ADC1->DR;
+
+	return adc;
 }

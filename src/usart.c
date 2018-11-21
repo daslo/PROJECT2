@@ -13,7 +13,7 @@
 extern int16_t temp[][4];
 
 /*source of temperature data*/
-enum SOURCE usart_source=source_d;
+enum SOURCE usart_source=source_dht;
 /*unit of displayed value */
 enum UNIT usart_unit=degC;
 
@@ -27,7 +27,7 @@ uint8_t usart_data[USART_DATA];
 
 void setup_usart(){
 	/*Configure USART1: 8N1@9600*/
-	USART1->BRR = 8000000/9600; //BaudRate_Register=CPU_Freq / Desired_Baudrate
+	USART1->BRR = 8000000/115200; //BaudRate_Register=CPU_Freq / Desired_Baudrate
 	/*Default configuration: 8N1 */
 	/* Enable: USART, Rx not empty interrupt, Tx, Rx */
 	USART1->CR1 = USART_CR1_UE | USART_CR1_RXNEIE | USART_CR1_TE | USART_CR1_RE;
@@ -43,11 +43,8 @@ void usart_write(){
 	 * - 1 char for sign
 	 * - 3 chars for value
 	 * - 2 chars for unit
-	 *
 	 */
-
 	usart_data[0] = (n>0 ? '+' : '-'); /* Sign */
-
 	/*
 	 * Set chars for value:
 	 * to get a particular digit of number:
@@ -67,7 +64,7 @@ void usart_write(){
 	/* Set chars for unit symbols */
 	switch(usart_unit){
 	case degC:
-		usart_data[4]='*'; /* Degree. I couldn't find any better option */
+		usart_data[4]='*'; /* Degree. (I couldn't find any better option) */
 		usart_data[5]='C';
 		break;
 	case degF:
@@ -101,11 +98,14 @@ __attribute__((interrupt)) void USART1_IRQHandler(void){
 			case 'i': case 'I': /* Set source to [i]nternal sensor */
 				usart_source=source_i;
 				break;
-			case 'a': case 'A':  /* Set source to [a]nalog sensor */
-				usart_source=source_a;
+			case 'n': case 'N':  /* Set source to [N]TC sensor */
+				usart_source=source_ntc;
 				break;
-			case 'd': case 'D': /* Set source to [d]igital sensor */
-				usart_source=source_d;
+			case 'l': case 'L':  /* Set source to [L]M35 sensor */
+				usart_source=source_lm;
+				break;
+			case 'd': case 'D': /* Set source to [D]HT11 sensor */
+				usart_source=source_dht;
 				break;
 			case 'c': case 'C': /* Set unit to degree [C]elsius */
 				usart_unit=degC;

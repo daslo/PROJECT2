@@ -25,15 +25,19 @@ void setup_gpio(){
 	GPIOC->CRH |= GPIO_CRH_MODE13_1;
 	GPIOC->CRH &= ~GPIO_CRH_CNF13_0;
 
+	/* PA8 (PWM1/1) - alt, pp, 50MHz */
+	GPIOA->CRH |= GPIO_CRH_CNF8_1;
+	GPIOA->CRH &= ~GPIO_CRH_CNF8_0;
+	GPIOA->CRH |= GPIO_CRH_MODE8_1;
+	GPIOA->CRH |= GPIO_CRH_MODE8_0;
+
 	/* PA9 (USART1 TX) = out, alt, 2MHz */
 	GPIOA->CRH |= GPIO_CRH_CNF9_1;
 	GPIOA->CRH &= ~GPIO_CRH_CNF9_0;
 	GPIOA->CRH |= GPIO_CRH_MODE9_1;
 	GPIOA->CRH &= ~GPIO_CRH_MODE9_0;
 
-	/* PA10 (USART1 RX) = in, float
-	 * input floating is default configuration
-	 */
+	/* PA10 (USART1 RX) = in, float - default configuration*/
 
 	/* PA6 -DHT11 data pin - configured later */
 

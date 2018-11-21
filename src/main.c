@@ -17,18 +17,20 @@
 #include "spi.h"
 #include "usart.h"
 #include "tim.h"
+#include "sensors.h"
 
 /*Data variables used by DHT11*/
 extern uint64_t dht_data;
 
 //Temporary variable for temperature in degree C
-int16_t temp_C; //temporary
+int16_t adc_value; //temporary
 //2D array:
 //temperature[source][unit]
-int16_t temp[][4]={0,0,0, 0,0,0, 0,0,0, 0,0,0};
+int16_t temp[][4]={0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0};
 
-/*main timer step*/
-int systick=0;
+
+/*main timer step, -50 to give some time*/
+int systick=-50;
 
 
 void setup(){
@@ -36,6 +38,7 @@ void setup(){
 	RCC->APB1ENR |= RCC_APB1ENR_SPI2EN;
 	RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
 
+	RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;
 	RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
 	RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;
 	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;
@@ -78,42 +81,47 @@ int main(void)
  * For particular points of time, there are snippets of code
  */
 __attribute__((interrupt)) void SysTick_Handler(void){
-	//if(systick==5)tm_leds=tm_read();
-
 	switch(systick){
 	/*
-	 * Start acting at systick=100, to give some time
 	 * Read ADC1_IN16 (internal temperature sensor)
 	 */
-	case 100:
-		temp_C=read_adc(); /*Read temperature in deg C */
-
-		/* Calculate temperatures for Internal source, for every unit:
-		 *
-		 * Degree Celsius: just copy
-		 */
-		temp[source_i][degC]=temp_C;
+	case 60:
+		/* LM35 (CH0)*/
 		/*
-		 * Calculate temperature in degree Fahrenheit
-		 * Use approximation, to keep variable type (int16)
-		 * T(degF) = 2*T(degC) + 32
-		 * precise: T(degF)= 5/9 * T(degC) + 32
-		 * error= 1,1%
+		 * Read ADC and store it (I keep it viewable for debug purposes)
+		 * Every of the 3 read_adc calls returns conversion results
+		 * from 3 different channels
 		 */
-		temp[source_i][degF]=temp_C*2 + 32;
+		temp[source_lm][NONE]=read_adc();
 		/*
-		 * Calculate temperature in Kelvin
-		 * Use approximation to keep variable type (int16)
-		 * T(K) = 273 + T(degC)
-		 * precise: T(K)= 273.15 + T(degC)
+		 * Convert ADC reading to temperature in degree C
+		 * (every sensor has own function)
 		 */
-		temp[source_i][K]=temp_C+273;
-		/* Blink built-in LED */
-		GPIOC->BSRR |=GPIO_BSRR_BS13;
-		/* Read buttons from TM1638 and change behaviour of display */
-		tm_read_buttons();
+		temp[source_lm][degC]=temp_LM35(temp[source_lm][NONE]);
+		/* Convert temperature in degree C to degree F */
+		temp[source_lm][degF]=convertF(temp[source_lm][degC]);
+		/* Convert temperature in degree C to Kelvins*/
+		temp[source_lm][K]=convertK(temp[source_lm][degC]);
 		break;
-	case 200:
+	case 70:
+		/*NTC (CH1)*/
+		temp[source_ntc][NONE]=read_adc();
+		temp[source_ntc][degC]=temp_NTC(temp[source_ntc][NONE]);
+		temp[source_ntc][degF]=convertF(temp[source_ntc][degC]);
+		temp[source_ntc][K]=convertK(temp[source_ntc][degC]);
+		break;
+	case 80:
+		/*internal sensor (CH16)*/
+		temp[source_i][NONE]=read_adc();
+		temp[source_i][degC]=temp_internal(temp[source_i][NONE]);
+		temp[source_i][degF]=convertF(temp[source_i][degC]);
+		temp[source_i][K]=convertK(temp[source_i][degC]);
+		break;
+	case 90:
+		/* Blink built-in LED */
+		GPIOC->BSRR |=GPIO_BSRR_BR13;
+		break;
+	case 100:
 		/*
 		 * Set DHT11 pin as output, low
 		 * DHT11 will detect low signal and will start sending data after it ends
@@ -124,7 +132,7 @@ __attribute__((interrupt)) void SysTick_Handler(void){
 		GPIOA->CRL &= ~GPIO_CRL_CNF6_0;
 		GPIOA->BSRR |= GPIO_BSRR_BR6; /* Reset PA6 pin */
 		break;
-	case 202:
+	case 102:
 		/*
 		 * Duration of low signal must be at least 18ms
 		 * here: 20ms
@@ -144,49 +152,36 @@ __attribute__((interrupt)) void SysTick_Handler(void){
 		TIM3->CCER |= TIM_CCER_CC1E; /*Enable Input Capture on TIM3_CH1*/
 		TIM3->CR1 |= TIM_CR1_CEN; /*Enable TIM3*/
 		break;
-	case 204:
+	case 103:
 		/*
-		 * Sending data lasts about 4ms
-		 * here: waiting for 20ms
+		 * Sending data lasts about 4ms (DTH11 datasheet)
+		 * here: waiting for 10ms - the shortest time
+		 * with that SysTick configuration
 		 */
-
 		/* turn off the timer3 */
 		TIM3->CCER &= ~TIM_CCER_CC1E;
 		TIM3->CR1 &= ~TIM_CR1_CEN;
-
-
-		GPIOC->BSRR |= GPIO_BSRR_BR13; /*blink built-in LED*/
-
 		/*
-		 * dht_data contains 40 bits of DHT11's response,
-		 * 5x8 bits:
-		 *
-		 *   RH i      RH f     T  i     T  f     CS
-		 * |--------|--------|--------|--------|--------|
-		 *
-		 *  RH - Relative Humidity [%]
-		 *  T - temperature [degree C]
-		 *  CS - checksum
-		 *  i - integral part
-		 *  f - fraction
-		 *
-		 *  To get only integral part of temperature:
-		 *  -mask the variable
-		 *  -shift the variable
+		 * DHT11 sensor has no ADC data to store, so
+		 * I put a totally random value into NONE
+		 * Well, not that random... it has to be negative
+		 * to see if "-" symbol works :D
 		 */
-		temp_C=((dht_data & 0x0000FF0000)>>16);
+		temp[source_dht][NONE]=-2137;
+		temp[source_dht][degC]=temp_DHT11(dht_data);
+		temp[source_dht][degF]= convertF(temp[source_dht][degC]);
+		temp[source_dht][K]=convertK(temp[source_dht][degC]);
 		/*Reset the DHT11's data variable */
 		dht_data=0;
 		/* Refer to internal sensor part */
-		temp[source_d][degC]=temp_C;
-		temp[source_d][degF]= temp_C*2 + 32;
-		temp[source_d][K]=temp_C+273;
 
+		GPIOC->BSRR |= GPIO_BSRR_BS13; /*blink built-in LED*/
+		/* Read buttons from TM1638 and change behaviour of display */
+		tm_read_buttons();
 		/* Write value on TM1638 */
 		tm_write();
 		/* Write value to UART */
 		usart_write();
-
 		/* Reset the main timer steps */
 		systick=0;
 		break;

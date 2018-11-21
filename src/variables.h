@@ -9,7 +9,7 @@
 #define VARIABLES_H_
 
 
-enum UNIT {NONE=0, degC, degF, K, _END, per100};
-enum SOURCE {source_i=0, source_a, source_d, source_end};
+enum UNIT {NONE=0, degC, degF, K, END};
+enum SOURCE {source_i=0, source_lm, source_ntc, source_dht, source_END};
 
 #endif /* VARIABLES_H_ */
