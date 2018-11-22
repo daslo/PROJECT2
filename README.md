@@ -17,6 +17,7 @@ uC    ---   DHT11
 
 PA6   ---   DIO
 
+-------------------
 
 uC    ---   NTC 10K
 
@@ -24,6 +25,7 @@ VCC   ---   Pin 1
 
 PA1   ---   Pin 2 (it doesn't matter, its just a resistor)
 
+-------------------
 
 uC    ---   TM1638
 
@@ -33,6 +35,7 @@ PB13  ---   CLK
 
 PB15  ---   DIO
 
+-------------------
 
 uC    ---   UART<>USB
 
