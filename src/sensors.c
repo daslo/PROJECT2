@@ -30,10 +30,11 @@
  *
  *  to calculate temperature based on resistance I used the NTC datasheet:
  *
- *  here: I took values from Temperature-Resistance table and
- *  approximated them with 2nd degree polynomial
- *  its coefficients are: a2, a1, a0 (for temperature in degree C
- *  and resistance in kOhm
+ *  here: I took values from Temperature-Resistance table
+ *  (not all, just for temperatures from -15 to +35 deg C)
+ *  and approximated them with 2nd degree polynomial
+ *  its coefficients are: a2, a1, a0
+ *  (for temperature in degree C and resistance in kOhm)
  */
 
 const float a2=0.072557;
@@ -45,7 +46,7 @@ const uint16_t A_MAX = 4095;
 
 int16_t temp_NTC(int16_t adc){
 	/* resistance of NTC [Ohm]*/
-	float R_NTC=(float)adc * R_series / (float)(A_MAX-adc);
+	float R_NTC= (float)(A_MAX-adc) * R_series / (float)adc;
 	/* temperature [degC] */
 	float t= a2*(R_NTC/1000)*(R_NTC/1000) + a1*(R_NTC/1000) + a0;
 	return (int16_t)t;
@@ -72,7 +73,10 @@ int16_t temp_internal(int16_t adc){
 }
 
 /*
- * LM35 is calibrated directly in Celsius scale
+ * LM35
+ * it's calibrated directly in Celsius scale
+ * scale factor = 10 [mV/degC]
+ *
  */
 const float lm35_scale_factor=0.01; //[V/degC]
 int16_t temp_LM35(int16_t adc){
@@ -82,7 +86,9 @@ int16_t temp_LM35(int16_t adc){
 }
 
 /*
- * dht_data contains 40 bits of DHT11's response,
+ * DTH11
+ *
+ * dht_data contains all 40 bits of DHT11's response,
  * 5x8 bits:
  *
  *   RH i      RH f     T  i     T  f     CS
@@ -102,7 +108,7 @@ int16_t temp_DHT11(uint64_t data){
 	return (data & 0x0000FF0000)>>16;
 }
 /*
- * Calculate temperature in degree Fahrenheit
+ * Convert temperature to degree Fahrenheit
  * T(degF)= 5/9 * T(degC) + 32
  */
 
@@ -111,7 +117,7 @@ int16_t convertF(int16_t C){
 	return (int16_t)F;
 }
 /*
- * Calculate temperature in Kelvin
+ * Convert temperature to Kelvin
  * T(K)= 273.15 + T(degC)
  */
 

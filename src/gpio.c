@@ -19,7 +19,25 @@
  * pin = 0xA1 mod 0x10 = 0x1
  * port = 0xA1 div 0x10 = 0xA
  */
-
+/* pin descriptions:
+ *
+ *  PA9 (USART1 TX) = out, alt, 2MHz
+ *  port, pin (pin function) = direction, configuration, maximum output speed
+ *
+ *  direction: out, in
+ *  configuration: (GPIO_CRx_CNFx_x)
+ *  	pp = push-pull
+ *  	pu = pull-up
+ *  	pd = pull-down
+ *  	float = floating
+ *
+ *  	analog = analog
+ *  	alt = alternative function
+ *
+ * maximum output speed is configured by GPIO_CRx_MODEx_x bits
+ *
+ *
+ */
 void setup_gpio(){
 	/* PC13 (built-in LED) = out, pp, 2MHz */
 	GPIOC->CRH |= GPIO_CRH_MODE13_1;
@@ -37,15 +55,23 @@ void setup_gpio(){
 	GPIOA->CRH |= GPIO_CRH_MODE9_1;
 	GPIOA->CRH &= ~GPIO_CRH_MODE9_0;
 
-	/* PA10 (USART1 RX) = in, float - default configuration*/
+	/* PA10 (USART1 RX) = in, float*/
+	/* default configuration */
 
-	/* PA6 -DHT11 data pin - configured later */
+	/* PA6 (DHT11 data pin)*/
+	/* configured in SysTick interrupt */
 
-	/* PA0 - LM35, analog */
+	/* PA0 (LM35) = analog */
 	GPIOA->CRL &= ~GPIO_CRL_MODE0_0;
 	GPIOA->CRL &= ~GPIO_CRL_MODE0_1;
 	GPIOA->CRL &= ~GPIO_CRL_CNF0_0;
 	GPIOA->CRL &= ~GPIO_CRL_CNF0_1;
+
+	/* PA1 (NTC) = analog */
+	GPIOA->CRL &= ~GPIO_CRL_MODE1_0;
+	GPIOA->CRL &= ~GPIO_CRL_MODE1_1;
+	GPIOA->CRL &= ~GPIO_CRL_CNF1_0;
+	GPIOA->CRL &= ~GPIO_CRL_CNF1_1;
 
 	//----------------------------------
 	/*

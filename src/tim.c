@@ -15,15 +15,29 @@ int dht_read=0;
 void setup_timer(){
 	// f_UEV = f_TIM CLK / (ARR+1)(PSC+1)
 
-	/* TIM1 (for future use)*/
+	/* TIM1 - PWM generation*/
+	/*auto preload register enable*/
 	TIM1->CR1 |=TIM_CR1_ARPE;
-	TIM1->DIER |= TIM_DIER_UIE;
+	//TIM1->DIER |= TIM_DIER_UIE;
 	TIM1->CNT=0;
-	TIM1->PSC=7;
-	TIM1->ARR=0;
+	TIM1->PSC=7; //freq (indirect)
+	TIM1->CCR1=50; //duty-cycle
+	TIM1->ARR=100; //freq
+	//OCxPE, OCxM
+	/*timer mode: PWM mode 2 */
+	TIM1->CCMR1 |= TIM_CCMR1_OC1M_1 | TIM_CCMR1_OC1M_2;
+	/*preload enable */
+	TIM1->CCMR1 |= TIM_CCMR1_OC1PE; //?
+
+	//comp/capt output en.
+	TIM1->CCER |= TIM_CCER_CC1E;
+	/* main output enable */
+	TIM1->BDTR |= TIM_BDTR_MOE;
+	//timer en.
+	TIM1->EGR |= TIM_EGR_UG;
 	TIM1->CR1 |= TIM_CR1_CEN;
 
-	/* TIM2 (for future use)*/
+	/* TIM2 - PWM (on TIM1/1) frequency modulation*/
 	TIM2->CR1 |=TIM_CR1_ARPE;
 	TIM2->DIER |= TIM_DIER_UIE;
 	TIM2->CNT=0;
@@ -58,10 +72,13 @@ __attribute__((interrupt)) void TIM1_UP_IRQHandler(void){
 	}
 }
 
+
 __attribute__((interrupt)) void TIM2_IRQHandler(void){
 	if(TIM2->SR & TIM_SR_UIF){
 		/* (for future use) */
 		TIM2->SR &= ~TIM_SR_UIF;
+		TIM1->ARR = TIM1->ARR +1;
+		if(TIM1->ARR == 60000) TIM1->ARR = 1;
 	}
 }
 

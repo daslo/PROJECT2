@@ -30,7 +30,7 @@ int16_t temp[][4]={0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0};
 
 
 /*main timer step, -50 to give some time*/
-int systick=-50;
+int systick=-100;
 
 
 void setup(){
