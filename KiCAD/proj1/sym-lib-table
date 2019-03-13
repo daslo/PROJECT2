@@ -1,0 +1,4 @@
+(sym_lib_table
+  (lib (name tm1638)(type Legacy)(uri /home/ds/ac6_workspace/Temperature/KiCAD/proj1/tm1638.lib)(options "")(descr ""))
+  (lib (name hc05)(type Legacy)(uri /home/ds/ac6_workspace/Temperature/KiCAD/proj1/hc05.lib)(options "")(descr ""))
+)
