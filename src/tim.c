@@ -95,11 +95,11 @@ __attribute__((interrupt)) void TIM3_IRQHandler(void){
 		 * to one 64bit variable
 		 *
 		 * on start is =0. With every bit send function:
-		 * 	shifts value left
-		 * 	sets last bit if HIGH signal lasts longer than threshold
+		 * 1. shifts value left
+		 * 2. sets last bit if HIGH signal lasts longer than threshold
 		 *
 		 * 	           1      2     3
-		 * 	DHT11 ___------__----__------__
+		 * 	DHT11 ___------__---__------__
 		 *
 		 * 	dht_data:
 		 *       << 1     |= ...

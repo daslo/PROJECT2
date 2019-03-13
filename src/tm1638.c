@@ -13,7 +13,7 @@
 /* Array of temperature values
  * External, defined in main.c
  */
-extern int16_t temp[3][4];
+extern int16_t temp[4][4];
 /*
  * State of LEDS
  * when sending data about LED, only last bit of byte matters
@@ -36,8 +36,8 @@ enum UNIT tm_unit=degC;
 #define pSTROBE 0xBC /*PB12*/
 
 /*
- * following constants define states of displays ([dp]gfedcba)
- *
+ * to set state of  7-seg display, the uC has to send
+ * a 8 bits, each defining one segment
  *   _____
  *  |  a  |
  * f|     |b
@@ -48,14 +48,19 @@ enum UNIT tm_unit=degC;
  *     d
  *
  */
+/* Following constants contain states of segments (in order: [dp]gfedcba)
+ * equivalent to symbols: */
+
 /*digits: 0,1,2,3,4,5,6,7,8,9*/
 const int DIGITS[]={
 		0b00111111, 0b00000110, 0b01011011, 0b01001111, 0b01100110,
 		0b01101101, 0b01111101, 0b00000111, 0b01111111, 0b01101111 };
+/* other set of digits, not used here*/
 const int DIGITS2[]={
 		0b00111111, 0b00000110, 0b01010011, 0b01001111, 0b01000110,
 		0b01001001, 0b01111001, 0b00000111, 0b01111111, 0b01001111 };
 
+/* define also other symbols */
 const int SYM_BLANK = 0b00000000; /*blank */
 const int SYM_MINUS = 0b01000000; /*minus */
 const int SYM_DEG = 0b01100011; /*degree */
@@ -82,8 +87,9 @@ void tm_commit(){
 	set(pSTROBE); /* NSS=1 */
 }
 
+/* Show variable 'n' on TM1638 */
 void tm(long int n){
-	/*set varialbe, so that is represents 'n' in decimal system */
+	/*set variables, so that they represents 'n' in decimal base */
 	tm_seg[7]=DIGITS[(n%10)/1];
 	tm_seg[6]=DIGITS[(n%100)/10];
 	tm_seg[5]=DIGITS[(n%1000)/100];
@@ -105,17 +111,17 @@ void tm_write(){
 	 * Set the 7Segs as follows:
 	 *
 	 * - sign (optional)
-	 * - 1000 digit
-	 * - 100 digit
-	 * - 10 digit
-	 * - 1 digit
-	 * - blank
+	 * - 1000s' digit
+	 * - 100s' digit
+	 * - 10s' digit
+	 * - 1s' digit
+	 * - always blank
 	 * - unit (1st part)
 	 * - unit (2nd part)
 	 *
 	 */
 	int16_t n=temp[tm_source][tm_unit];
-	tm_seg[0]=(n>=0 ? SYM_BLANK : SYM_MINUS);
+	tm_seg[0]=(n>=0 ? SYM_BLANK : SYM_MINUS); /* set '-' sing if needed */
 
 	if(n<0) n=-n; /*get absolute value, because sign is already handled */
 	/* set digits */
@@ -151,7 +157,7 @@ void tm_write(){
 uint8_t tm_read(){
 	/* Read state of buttons */
 	clr(pSTROBE); /* NSS=0 */
-	spi_write(0x42); /* Read button mode */
+	spi_write(0x42); /* Read buttons mode */
 	for(int i=0; i<1000; ++i); //wait (TODO: check TXNE flag?)
 	SPI2->CR1 &= ~SPI_CR1_BIDIOE; /* set SPI bidirectional line as input */
 

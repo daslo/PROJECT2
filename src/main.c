@@ -169,8 +169,6 @@ __attribute__((interrupt)) void SysTick_Handler(void){
 		TIM3->CR1 &= ~TIM_CR1_CEN;
 		/*
 		 * DHT11 sensor has no ADC data to store
-
-		 * to see if "-" symbol works :D
 		 */
 		temp[source_dht][NONE]=-1;
 		temp[source_dht][degC]=temp_DHT11(dht_data);
@@ -187,7 +185,7 @@ __attribute__((interrupt)) void SysTick_Handler(void){
 		tm_write();
 		/* Write value to UART */
 		usart_write();
-		/* Reset the main timer steps */
+		/* Reset the main counter */
 		systick=0;
 		break;
 	default:

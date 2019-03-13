@@ -20,7 +20,8 @@ enum UNIT usart_unit=degC;
 uint8_t usart_in=0;
 
 /* Data to send:
- * array size and actual array
+ * array size and data array
+ * it has contant size and UART will always send USART_DATA bytes
  */
 #define USART_DATA 8
 uint8_t usart_data[USART_DATA];
@@ -90,7 +91,7 @@ void usart_send(uint8_t data){
 }
 
 __attribute__((interrupt)) void USART1_IRQHandler(void){
-	/* Config transmission options with received commands */
+	/* Configure transmission options with received commands */
 	if ( USART1->SR & USART_SR_RXNE){ /*Interrupt source: Rx not empty (data received) */
 			USART1->SR &= ~USART_SR_RXNE; /* Clear interrupt flag*/
 			usart_in= USART1->DR; /*Get value from register*/
