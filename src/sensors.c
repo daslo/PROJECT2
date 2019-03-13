@@ -81,7 +81,7 @@ int16_t temp_internal(int16_t adc){
 const float lm35_scale_factor=0.01; //[V/degC]
 int16_t temp_LM35(int16_t adc){
 
-	float t= (adc*3.3/ 4095 )/lm35_scale_factor;
+	float t= (adc*3.3f/ 4095.0f )/lm35_scale_factor;
 	return (int16_t)t;
 }
 
