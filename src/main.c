@@ -24,26 +24,30 @@ extern uint64_t dht_data;
 
 //Temporary variable for temperature in degree C
 int16_t adc_value; //temporary
-//2D array:
-//temperature[source][unit]
+
+/* Store data:
+ * temp[source][unit]
+ * sources: LM35, NTC, internal sensor, DHT11
+ * units: none (ADC read), degree C, degree F, Kelvins
+ */
 int16_t temp[][4]={0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0};
 
 
-/*main timer step, -50 to give some time*/
-int systick=-100;
+/*main counter*/
+volatile int systick=0;
 
 
 void setup(){
 	/* Enable peripherals' clocks */
-	RCC->APB1ENR |= RCC_APB1ENR_SPI2EN;
-	RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
+	RCC->APB1ENR |= RCC_APB1ENR_SPI2EN; //SPI for TM1638
+	RCC->APB1ENR |= RCC_APB1ENR_TIM3EN; //timer for DTH11 (input-capture)
 
-	RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;
-	RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
-	RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;
-	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN;
-	RCC->APB2ENR |= RCC_APB2ENR_IOPBEN;
-	RCC->APB2ENR |= RCC_APB2ENR_IOPCEN;
+	RCC->APB2ENR |= RCC_APB2ENR_TIM1EN; //
+	RCC->APB2ENR |= RCC_APB2ENR_USART1EN; //UART for BT module
+	RCC->APB2ENR |= RCC_APB2ENR_ADC1EN; // ADC for LM35 and NTC
+	RCC->APB2ENR |= RCC_APB2ENR_IOPAEN; // PORT A
+	RCC->APB2ENR |= RCC_APB2ENR_IOPBEN; // PORT B
+	RCC->APB2ENR |= RCC_APB2ENR_IOPCEN; // PORT C
 
 	/* Call peripheral setup functions */
 	setup_gpio();
@@ -71,14 +75,15 @@ void setup(){
 int main(void)
 {
 	setup();
-	tm(12345678);
+	tm(12345678); // show something on TM1638
 	for(;;);
 }
 
 /*
  * SysTick (main timer) interrupt
  * executes every Period
- * For particular points of time, there are snippets of code
+ * in each interrupt it increments main counter
+ * if main counter reaches a threshold, a code is executed
  */
 __attribute__((interrupt)) void SysTick_Handler(void){
 	switch(systick){
@@ -88,9 +93,7 @@ __attribute__((interrupt)) void SysTick_Handler(void){
 	case 60:
 		/* LM35 (CH0)*/
 		/*
-		 * Read ADC and store it (I keep it viewable for debug purposes)
-		 * Every of the 3 read_adc calls returns conversion results
-		 * from 3 different channels
+		 * Read ADC and store it
 		 */
 		temp[source_lm][NONE]=read_adc();
 		/*
@@ -125,10 +128,11 @@ __attribute__((interrupt)) void SysTick_Handler(void){
 		/*
 		 * Datasheet says, sampling period should be at least 1 second
 		 * and for 1 second since power-up chip is unstable.
-		 * Therefore DHT11 related code executes at 100th (1s) step.
+		 * Therefore DHT11 related code executes at 100th (time=1s) step.
 		 * Set DHT11 pin as output, low
 		 * DHT11 will detect low signal and will start sending data after it ends
 		 */
+		/* PA6 as output */
 		GPIOA->CRL |= GPIO_CRL_MODE6_1;
 		GPIOA->CRL |= GPIO_CRL_MODE6_0;
 		GPIOA->CRL &= ~GPIO_CRL_CNF6_1;
@@ -139,9 +143,8 @@ __attribute__((interrupt)) void SysTick_Handler(void){
 		/*
 		 * Duration of low signal must be at least 18ms
 		 * here: 20ms
-		 *
-		 * Set DHT11 pin as input with pull-up
 		 */
+		/* Set DHT11 pin as input with pull-up */
 		GPIOA->CRL &= ~GPIO_CRL_MODE6_0;
 		GPIOA->CRL &= ~GPIO_CRL_MODE6_1;
 		GPIOA->CRL |= GPIO_CRL_CNF6_1;
@@ -159,19 +162,17 @@ __attribute__((interrupt)) void SysTick_Handler(void){
 	case 103:
 		/*
 		 * Sending data lasts about 4ms (DTH11 datasheet)
-		 * here: waiting for 10ms - the shortest time
-		 * with that SysTick configuration
+		 * it should be done between Systick interrupts (10ms)
 		 */
 		/* turn off the timer3 */
 		TIM3->CCER &= ~TIM_CCER_CC1E;
 		TIM3->CR1 &= ~TIM_CR1_CEN;
 		/*
-		 * DHT11 sensor has no ADC data to store, so
-		 * I put a totally random value into NONE
-		 * Well, not that random... it has to be negative
+		 * DHT11 sensor has no ADC data to store
+
 		 * to see if "-" symbol works :D
 		 */
-		temp[source_dht][NONE]=-2137;
+		temp[source_dht][NONE]=-1;
 		temp[source_dht][degC]=temp_DHT11(dht_data);
 		temp[source_dht][degF]= convertF(temp[source_dht][degC]);
 		temp[source_dht][K]=convertK(temp[source_dht][degC]);
