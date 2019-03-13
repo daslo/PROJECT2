@@ -58,7 +58,7 @@ int16_t read_adc(){
 	while(!(ADC1->SR & ADC_SR_EOC));
 	/*
 	 * Read data from data register
-	 * ADC's resolution is 12bit, so 16bit variable is OK
+	 * ADC's resolution is 12bit, so 16bit variable is enough
 	 */
 	adc=ADC1->DR;
 

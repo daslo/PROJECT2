@@ -22,7 +22,7 @@
 /* pin descriptions:
  *
  *  PA9 (USART1 TX) = out, alt, 2MHz
- *  port, pin (pin function) = direction, configuration, maximum output speed
+ *  port-pin (pin function) = direction, configuration, maximum output speed
  *
  *  direction: out, in
  *  configuration: (GPIO_CRx_CNFx_x)

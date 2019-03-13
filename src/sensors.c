@@ -40,7 +40,7 @@
 const float a2=0.072557;
 const float a1=-3.708759;
 const float a0=55.050231;
-const float R_series = 2200; //[Ohm]
+const float R_series = 1200.0; //[Ohm]
 const uint16_t A_MAX = 4095;
 
 

@@ -28,7 +28,7 @@ uint8_t usart_data[USART_DATA];
 
 void setup_usart(){
 	/*Configure USART1: 8N1@9600*/
-	USART1->BRR = 8000000/115200; //BaudRate_Register=CPU_Freq / Desired_Baudrate
+	USART1->BRR = 8000000/38400; //BaudRate_Register=CPU_Freq / Desired_Baudrate
 	/*Default configuration: 8N1 */
 	/* Enable: USART, Rx not empty interrupt, Tx, Rx */
 	USART1->CR1 = USART_CR1_UE | USART_CR1_RXNEIE | USART_CR1_TE | USART_CR1_RE;
